@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="th">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบันทึก���ารปฏิบัติงาน</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+    
+    html, body {
+      height: 100%;
+    }
+    
+    h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, label {
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+    
+    * {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .stat-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    .stat-card:hover::before {
+      left: 100%;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    
+    .task-item {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+    }
+    
+    .task-item:hover {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-left-color: #667eea;
+      transform: translateX(8px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+    }
+    
+    .star {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      filter: grayscale(100%);
+      opacity: 0.5;
+    }
+    
+    .star:hover {
+      transform: scale(1.3) rotate(10deg);
+      filter: grayscale(0%);
+      opacity: 1;
+    }
+    
+    .star.active {
+      color: #fbbf24;
+      filter: grayscale(0%) drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
+      opacity: 1;
+      animation: starPulse 0.5s ease-out;
+    }
+    
+    @keyframes starPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-left: 50px;
+      padding-bottom: 40px;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: -10px;
+      width: 3px;
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    }
+
+    .timeline-item:last-child::before {
+      display: none;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 4px solid white;
+      box-shadow: 0 0 0 3px #667eea, 0 4px 12px rgba(102, 126, 234, 0.4);
+      z-index: 1;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 3px #667eea, 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(102, 126, 234, 0.3), 0 4px 12px rgba(102, 126, 234, 0.6);
+      }
+    }
+
+    .timeline-content {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .timeline-content:hover {
+      box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
+      transform: translateX(8px) translateY(-4px);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+
+    .time-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4b5563;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .btn-nav {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-nav::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.4s, height 0.4s;
+    }
+    
+    .btn-nav:hover::after {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .input-field {
+      transition: all 0.3s ease;
+      border: 2px solid #e5e7eb;
+    }
+    
+    .input-field:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .form-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .form-card:hover {
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+      transform: translateY(-4px);
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .float-animation {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full flex flex-col" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><!-- Navigation -->
+   <nav class="glass-effect shadow-2xl flex-shrink-0 border-b border-purple-100">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+     <div class="flex flex-col sm:flex-row justify-between items-center py-3 sm:py-0 sm:h-20 gap-3 sm:gap-0">
+      <div class="flex items-center w-full sm:w-auto justify-center sm:justify-start">
+       <div class="flex-shrink-0 flex items-center float-animation">
+        <div class="text-2xl sm:text-3xl">
+         📋
+        </div>
+        <h1 id="nav-title" class="ml-2 sm:ml-3 text-lg sm:text-2xl font-bold gradient-text">ระบบบันทึกการปฏิบัติงาน</h1>
+       </div>
+      </div>
+      <div class="flex items-center flex-wrap justify-center gap-2 sm:space-x-3 w-full sm:w-auto"><button id="btn-dashboard" class="btn-nav px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium shadow-lg hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600;"> <span class="hidden sm:inline">📊 Dashboard</span> <span class="sm:hidden">📊</span> </button> <button id="btn-timeline" class="btn-nav px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium shadow-lg hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #8b5cf6 0%, #c026d3 100%); color: white; font-weight: 600;"> <span class="hidden sm:inline">🕐 ไทม์ไลน์</span> <span class="sm:hidden">🕐</span> </button> <button id="btn-import" class="btn-nav px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium shadow-lg hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%); color: white; font-weight: 600;"> <span class="hidden sm:inline">📥 นำเข้า</span> <span class="sm:hidden">📥</span> </button> <button id="btn-add-task" class="btn-nav px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium shadow-lg hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); color: white; font-weight: 600;"> <span class="hidden sm:inline">➕ บันทึก</span> <span class="sm:hidden">➕</span> </button> <button id="btn-evaluation" class="btn-nav px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium shadow-lg hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: white; font-weight: 600;"> <span class="hidden sm:inline">⭐ ประเมิน</span> <span class="sm:hidden">⭐</span> </button>
+      </div>
+     </div>
+    </div>
+   </nav>
+   <div class="flex-1 overflow-y-auto"><!-- Dashboard View -->
+    <div id="dashboard-view" class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-8 mb-4 sm:mb-8">
+      <h2 id="company-name-display" class="text-xl sm:text-3xl font-bold mb-4 sm:mb-6" style="color: #1f2937;">บริษัท / หน่วยงาน</h2><!-- Stats Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+       <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+        <div class="text-4xl mb-2">
+         📝
+        </div>
+        <div class="text-2xl font-bold" id="total-tasks">
+         0
+        </div>
+        <div class="text-sm opacity-90">
+         งานทั้งหมด
+        </div>
+       </div>
+       <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
+        <div class="text-4xl mb-2">
+         ✅
+        </div>
+        <div class="text-2xl font-bold" id="completed-tasks">
+         0
+        </div>
+        <div class="text-sm opacity-90">
+         เสร็จสิ้น
+        </div>
+       </div>
+       <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 text-white shadow-lg">
+        <div class="text-4xl mb-2">
+         ⏳
+        </div>
+        <div class="text-2xl font-bold" id="pending-tasks">
+         0
+        </div>
+        <div class="text-sm opacity-90">
+         กำลังดำเ���ินก���ร
+        </div>
+       </div>
+       <div class="stat-card bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+        <div class="text-4xl mb-2">
+         ⭐
+        </div>
+        <div class="text-2xl font-bold" id="avg-rating">
+         0.0
+        </div>
+        <div class="text-sm opacity-90">
+         คะแนนเฉลี่ย
+        </div>
+       </div>
+      </div><!-- Task List -->
+      <div class="bg-gray-50 rounded-xl p-6">
+       <h3 class="text-xl font-bold mb-4" style="color: #1f2937;">รายการงานล่าสุด</h3>
+       <div id="task-list" class="space-y-3">
+        <div class="text-center py-8 text-gray-500">
+         ยังไม่มีข้อมูลการปฏิบัติงาน กดปุ่ม "บันทึกงาน" เพื่อเริ่มต้น
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- Timeline View -->
+    <div id="timeline-view" class="max-w-5xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 hidden">
+     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-8">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+       <h2 class="text-xl sm:text-3xl font-bold" style="color: #1f2937;">🕐 ไทม์ไลน์การทำงาน</h2>
+       <div class="flex gap-2"><input type="date" id="timeline-filter-date" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"> <button id="btn-clear-filter" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"> ล้างตัวกรอง </button>
+       </div>
+      </div>
+      <div id="timeline-container" class="mt-8">
+       <div class="text-center py-12 text-gray-500">
+        ยังไม่มีข้อมูลในไทม์ไลน์ กดปุ่ม "บันทึกงาน" เพื่อเพิ่มงาน
+       </div>
+      </div>
+     </div>
+    </div><!-- Import Data View -->
+    <div id="import-view" class="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 hidden">
+     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-8">
+      <h2 class="text-xl sm:text-3xl font-bold mb-4 sm:mb-6" style="color: #1f2937;">📥 นำเข้าข้อมูลการทำงาน</h2>
+      <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-8">
+       <div class="flex items-start gap-3">
+        <div class="text-3xl">
+         💡
+        </div>
+        <div>
+         <h3 class="font-bold text-blue-900 mb-2">วิธีนำเข้าข้อมูลจาก Google Calendar</h3>
+         <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+          <li>เปิด Google Calendar บนคอมพิวเตอร์</li>
+          <li>คลิกที่กิจกรรมที่ต้องการนำเข้า</li>
+          <li>คัดลอกชื่อกิจกรรม, วันที่, เวลา, และสถานที่</li>
+          <li>วางข้อมูลในฟอร์มด้านล่าง</li>
+          <li>กดปุ่ม "นำเข้าข้อมูล" เพื่อบันทึก</li>
+         </ol>
+        </div>
+       </div>
+      </div>
+      <form id="import-form" class="space-y-6"><!-- จำนวนรายการ -->
+       <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-6 mb-6"><label class="block text-sm font-medium mb-3" style="color: #374151;"> 📋 จำนวนรายการที่ต้องการนำเข้า </label>
+        <div class="flex gap-4"><input type="number" id="import-count" min="1" max="10" value="1" class="w-32 px-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors text-center text-xl font-bold"> <button type="button" id="generate-forms-btn" class="px-6 py-3 rounded-lg font-medium text-white transition-colors" style="background-color: #ec4899;"> สร้างฟอร์ม </button>
+        </div>
+        <p class="text-sm text-gray-600 mt-2">*สามารถนำเข้าได้สูงสุด 10 รายการพร้อมกัน</p>
+       </div><!-- ฟอร์มนำเ��้า -->
+       <div id="import-forms-container" class="space-y-6"><!-- Forms will be generated here -->
+       </div>
+       <div class="flex gap-4 pt-4"><button type="submit" id="submit-import-btn" class="flex-1 px-6 py-4 rounded-lg font-medium text-white text-lg transition-colors" style="background-color: #ec4899;"> 📥 นำเข้าทั้งหมด </button> <button type="button" id="cancel-import-btn" class="px-6 py-4 rounded-lg font-medium transition-colors text-lg" style="background-color: #e5e7eb; color: #374151;"> ยกเลิก </button>
+       </div>
+      </form>
+     </div>
+    </div><!-- Add Task View -->
+    <div id="add-task-view" class="max-w-3xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 hidden">
+     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-8">
+      <h2 class="text-xl sm:text-3xl font-bold mb-4 sm:mb-6" style="color: #1f2937;">📝 บันทึกการปฏิบัติงาน</h2>
+      <form id="task-form" class="space-y-6">
+       <div><label for="task-date" class="block text-sm font-semibold mb-2 text-gray-700">📅 วันที่ *</label> <input type="date" id="task-date" required class="input-field w-full px-4 py-3 rounded-xl focus:outline-none">
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div><label for="start-time" class="block text-sm font-semibold mb-2 text-gray-700">🕐 เวลาเริ่ม *</label> <input type="time" id="start-time" required class="input-field w-full px-4 py-3 rounded-xl focus:outline-none">
+        </div>
+        <div><label for="end-time" class="block text-sm font-semibold mb-2 text-gray-700">🕐 เวลาสิ้นสุด *</label> <input type="time" id="end-time" required class="input-field w-full px-4 py-3 rounded-xl focus:outline-none">
+        </div>
+       </div>
+       <div><label for="task-description" class="block text-sm font-semibold mb-2 text-gray-700">📝 รายละเอียดงาน *</label> <textarea id="task-description" required rows="5" placeholder="อธิบายงานที่ทำ..." class="input-field w-full px-4 py-3 rounded-xl focus:outline-none"></textarea>
+       </div>
+       <div><label for="task-location" class="block text-sm font-semibold mb-2 text-gray-700">📍 สถานที่</label> <input type="text" id="task-location" placeholder="ระบุสถานที่ทำงาน (ถ้ามี)" class="input-field w-full px-4 py-3 rounded-xl focus:outline-none">
+       </div>
+       <div><label for="task-status" class="block text-sm font-semibold mb-2 text-gray-700">🎯 สถานะ *</label> <select id="task-status" required class="input-field w-full px-4 py-3 rounded-xl focus:outline-none"> <option value="pending">⏳ กำลังดำเนินการ</option> <option value="completed">✅ เสร็จสิ้น</option> </select>
+       </div>
+       <div class="flex gap-4 pt-2"><button type="submit" id="submit-task-btn" class="btn-nav flex-1 px-8 py-4 rounded-xl font-semibold text-white text-lg shadow-xl hover:shadow-2xl relative z-10" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"> 💾 บันทึกข้อมูล </button> <button type="button" id="cancel-task-btn" class="px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl" style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); color: #374151;"> ❌ ยกเลิก </button>
+       </div>
+      </form>
+     </div>
+    </div><!-- Evaluation View -->
+    <div id="evaluation-view" class="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 hidden">
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8"><!-- QR Code Section -->
+      <div class="bg-white rounded-2xl shadow-xl p-8">
+       <h2 class="text-2xl font-bold mb-4" style="color: #1f2937;">📱 QR Code สำหรับลูกค้า</h2>
+       <p class="text-gray-600 mb-6">ให้ลูกค้าสแกน QR Code เพื่อประเมินการบริการ</p>
+       <div id="qrcode" class="flex justify-center mb-4 bg-gray-50 p-6 rounded-xl"></div>
+       <p class="text-sm text-center text-gray-500">สแกนเพื่อเปิดแบบประเมิน</p>
+      </div><!-- Evaluation Form Section -->
+      <div class="bg-white rounded-2xl shadow-xl p-8">
+       <h2 id="evaluation-form-title" class="text-2xl font-bold mb-6" style="color: #1f2937;">⭐ แบบประเมินความพึงพอใจ</h2>
+       <form id="evaluation-form" class="space-y-6">
+        <div><label for="customer-name" class="block text-sm font-medium mb-2" style="color: #374151;">ชื่อผู้ประเมิน (ถ้ามี)</label> <input type="text" id="customer-name" placeholder="ไม่บังคับ" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors">
+        </div>
+        <div><label class="block text-sm font-medium mb-3" style="color: #374151;">ระดับความพึงพอใจ</label>
+         <div id="star-rating" class="flex justify-center gap-2 text-4xl mb-2"><span class="star" data-rating="1">⭐</span> <span class="star" data-rating="2">⭐</span> <span class="star" data-rating="3">⭐</span> <span class="star" data-rating="4">⭐</span> <span class="star" data-rating="5">⭐</span>
+         </div>
+         <p id="rating-text" class="text-center text-sm text-gray-500">กรุณาเลือก��ะแนน</p>
+        </div>
+        <div><label for="customer-comment" class="block text-sm font-medium mb-2" style="color: #374151;">ความคิดเห็นเพิ่มเติม</label> <textarea id="customer-comment" rows="4" placeholder="แสดงความคิดเห็น..." class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors"></textarea>
+        </div><button type="submit" id="submit-evaluation-btn" class="w-full px-6 py-3 rounded-lg font-medium text-white transition-colors" style="background-color: #f59e0b;"> ส่งแบบประเมิน </button>
+       </form>
+       <div id="evaluation-success" class="hidden mt-6 p-4 bg-green-100 border-2 border-green-500 rounded-lg text-center">
+        <div class="text-4xl mb-2">
+         ✅
+        </div>
+        <p class="text-green-800 font-medium">ขอบคุณสำหรับ������รประเมิน!</p>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      system_title: 'ระบบบันทึกการปฏิบัติงาน',
+      company_name: 'บริษัท / หน่วยงาน',
+      evaluation_title: 'แบบประเ��ินความพึงพอใจ',
+      primary_color: '#667eea',
+      secondary_color: '#ffffff',
+      text_color: '#1f2937',
+      button_color: '#10b981',
+      accent_color: '#f59e0b'
+    };
+
+    let currentRecordCount = 0;
+    let currentView = 'dashboard';
+    let selectedRating = 0;
+    let allRecords = [];
+    let filteredDate = null;
+
+    const dataHandler = {
+      onDataChanged(data) {
+        allRecords = data;
+        currentRecordCount = data.length;
+        updateDashboard(data);
+        updateTimeline(data);
+      }
+    };
+
+    async function initApp() {
+      if (window.dataSdk) {
+        const initResult = await window.dataSdk.init(dataHandler);
+        if (!initResult.isOk) {
+          console.error('Failed to initialize data SDK');
+        }
+      }
+
+      if (window.elementSdk) {
+        await window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            const systemTitle = config.system_title || defaultConfig.system_title;
+            const companyName = config.company_name || defaultConfig.company_name;
+            const evaluationTitle = config.evaluation_title || defaultConfig.evaluation_title;
+            const primaryColor = config.primary_color || defaultConfig.primary_color;
+            const buttonColor = config.button_color || defaultConfig.button_color;
+            const accentColor = config.accent_color || defaultConfig.accent_color;
+
+            document.getElementById('nav-title').textContent = systemTitle;
+            document.getElementById('company-name-display').textContent = companyName;
+            document.getElementById('evaluation-form-title').textContent = evaluationTitle;
+
+            const navTitle = document.getElementById('nav-title');
+            navTitle.style.color = primaryColor;
+
+            const btnDashboard = document.getElementById('btn-dashboard');
+            btnDashboard.style.backgroundColor = primaryColor;
+
+            const btnAddTask = document.getElementById('btn-add-task');
+            btnAddTask.style.backgroundColor = buttonColor;
+
+            const btnEvaluation = document.getElementById('btn-evaluation');
+            btnEvaluation.style.backgroundColor = accentColor;
+
+            const btnImport = document.getElementById('btn-import');
+            if (btnImport) {
+              btnImport.style.backgroundColor = '#ec4899';
+            }
+
+            const submitTaskBtn = document.getElementById('submit-task-btn');
+            submitTaskBtn.style.backgroundColor = primaryColor;
+
+            const submitEvaluationBtn = document.getElementById('submit-evaluation-btn');
+            submitEvaluationBtn.style.backgroundColor = accentColor;
+
+            generateQRCode();
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.primary_color = value;
+                    window.elementSdk.setConfig({ primary_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.button_color || defaultConfig.button_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.button_color = value;
+                    window.elementSdk.setConfig({ button_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.accent_color || defaultConfig.accent_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.accent_color = value;
+                    window.elementSdk.setConfig({ accent_color: value });
+                  }
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['system_title', config.system_title || defaultConfig.system_title],
+            ['company_name', config.company_name || defaultConfig.company_name],
+            ['evaluation_title', config.evaluation_title || defaultConfig.evaluation_title]
+          ])
+        });
+      }
+
+      setupEventListeners();
+      setTodayDate();
+      generateQRCode();
+    }
+
+    function setupEventListeners() {
+      document.getElementById('btn-dashboard').addEventListener('click', () => switchView('dashboard'));
+      document.getElementById('btn-timeline').addEventListener('click', () => switchView('timeline'));
+      document.getElementById('btn-import').addEventListener('click', () => {
+        switchView('import');
+        generateImportForms(1);
+      });
+      document.getElementById('btn-add-task').addEventListener('click', () => switchView('add-task'));
+      document.getElementById('btn-evaluation').addEventListener('click', () => switchView('evaluation'));
+
+      document.getElementById('generate-forms-btn').addEventListener('click', () => {
+        const count = parseInt(document.getElementById('import-count').value);
+        generateImportForms(count);
+      });
+
+      document.getElementById('import-form').addEventListener('submit', handleImportSubmit);
+      document.getElementById('cancel-import-btn').addEventListener('click', () => switchView('dashboard'));
+
+      document.getElementById('task-form').addEventListener('submit', handleTaskSubmit);
+      document.getElementById('cancel-task-btn').addEventListener('click', () => switchView('dashboard'));
+
+      document.getElementById('evaluation-form').addEventListener('submit', handleEvaluationSubmit);
+
+      document.getElementById('timeline-filter-date').addEventListener('change', (e) => {
+        filteredDate = e.target.value;
+        updateTimeline(allRecords);
+      });
+
+      document.getElementById('btn-clear-filter').addEventListener('click', () => {
+        filteredDate = null;
+        document.getElementById('timeline-filter-date').value = '';
+        updateTimeline(allRecords);
+      });
+
+      const stars = document.querySelectorAll('.star');
+      stars.forEach(star => {
+        star.addEventListener('click', () => {
+          selectedRating = parseInt(star.dataset.rating);
+          updateStarDisplay();
+        });
+      });
+    }
+
+    function switchView(view) {
+      currentView = view;
+      
+      document.getElementById('dashboard-view').classList.add('hidden');
+      document.getElementById('timeline-view').classList.add('hidden');
+      document.getElementById('import-view').classList.add('hidden');
+      document.getElementById('add-task-view').classList.add('hidden');
+      document.getElementById('evaluation-view').classList.add('hidden');
+
+      if (view === 'dashboard') {
+        document.getElementById('dashboard-view').classList.remove('hidden');
+      } else if (view === 'timeline') {
+        document.getElementById('timeline-view').classList.remove('hidden');
+      } else if (view === 'import') {
+        document.getElementById('import-view').classList.remove('hidden');
+      } else if (view === 'add-task') {
+        document.getElementById('add-task-view').classList.remove('hidden');
+      } else if (view === 'evaluation') {
+        document.getElementById('evaluation-view').classList.remove('hidden');
+      }
+    }
+
+    function generateImportForms(count) {
+      const container = document.getElementById('import-forms-container');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= count; i++) {
+        const formHTML = `
+          <div class="border-2 border-pink-200 rounded-xl p-6 bg-gradient-to-br from-white to-pink-50">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-pink-700">📝 รายการที่ ${i}</h3>
+              <span class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm font-medium">Item ${i}</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="import-date-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">วัน���ี่ *</label>
+                <input type="date" id="import-date-${i}" name="import-date-${i}" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors">
+              </div>
+              
+              <div>
+                <label for="import-start-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">เวลาเริ่ม *</label>
+                <input type="time" id="import-start-${i}" name="import-start-${i}" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors">
+              </div>
+              
+              <div>
+                <label for="import-end-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">เวลาสิ้นสุด *</label>
+                <input type="time" id="import-end-${i}" name="import-end-${i}" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors">
+              </div>
+
+              <div class="md:col-span-2">
+                <label for="import-description-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">รายละเอียดงาน *</label>
+                <textarea id="import-description-${i}" name="import-description-${i}" required rows="3" placeholder="คัดลอกจาก Google Calendar..." class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors"></textarea>
+              </div>
+
+              <div>
+                <label for="import-location-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">สถานที่</label>
+                <input type="text" id="import-location-${i}" name="import-location-${i}" placeholder="ระบุสถานที่" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors">
+              </div>
+
+              <div>
+                <label for="import-status-${i}" class="block text-sm font-medium mb-2" style="color: #374151;">สถานะ *</label>
+                <select id="import-status-${i}" name="import-status-${i}" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 transition-colors">
+                  <option value="completed">เสร็จสิ้น</option>
+                  <option value="pending">กำลังดำเนินการ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', formHTML);
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      for (let i = 1; i <= count; i++) {
+        const dateInput = document.getElementById(`import-date-${i}`);
+        if (dateInput) {
+          dateInput.value = today;
+        }
+      }
+    }
+
+    function setTodayDate() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('task-date').value = today;
+      
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('start-time').value = `${hours}:${minutes}`;
+    }
+
+    async function handleImportSubmit(e) {
+      e.preventDefault();
+
+      const count = parseInt(document.getElementById('import-count').value);
+      
+      if (currentRecordCount + count > 999) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+        errorDiv.innerHTML = `<p class="text-red-800 font-medium">ไม่สามารถนำเข้าได้ เนื่องจากจะเกินขีดจำกัด 999 รายการ (ปัจจุบันมี ${currentRecordCount} รายการ)</p>`;
+        document.getElementById('import-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 4000);
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-import-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'กำลังนำเข้า...';
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 1; i <= count; i++) {
+        const taskData = {
+          id: `${Date.now()}-${i}`,
+          type: 'task',
+          date: document.getElementById(`import-date-${i}`).value,
+          startTime: document.getElementById(`import-start-${i}`).value,
+          endTime: document.getElementById(`import-end-${i}`).value,
+          employeeName: '',
+          taskDescription: document.getElementById(`import-description-${i}`).value,
+          location: document.getElementById(`import-location-${i}`).value || '',
+          status: document.getElementById(`import-status-${i}`).value,
+          rating: 0,
+          comment: '',
+          timestamp: Date.now() + i
+        };
+
+        if (window.dataSdk) {
+          const result = await window.dataSdk.create(taskData);
+          
+          if (result.isOk) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (successCount > 0) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'mt-4 p-4 bg-green-100 border-2 border-green-500 rounded-lg text-center';
+        successDiv.innerHTML = `<p class="text-green-800 font-medium">✅ นำเข้าสำเร็จ ${successCount} รายการ!</p>`;
+        document.getElementById('import-form').appendChild(successDiv);
+        
+        setTimeout(() => {
+          successDiv.remove();
+          switchView('timeline');
+        }, 2000);
+      }
+
+      if (errorCount > 0) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mt-4 p-4 bg-yellow-100 border-2 border-yellow-500 rounded-lg text-center';
+        errorDiv.innerHTML = `<p class="text-yellow-800 font-medium">⚠️ มีข้อผิดพลาด ${errorCount} รายการ</p>`;
+        document.getElementById('import-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = '📥 นำเ��้าทั้งห���ด';
+    }
+
+    async function handleTaskSubmit(e) {
+      e.preventDefault();
+
+      if (currentRecordCount >= 999) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+        errorDiv.innerHTML = '<p class="text-red-800 font-medium">ไม่สามารถบันทึกได้ เนื่องจากถึงขีดจำกัด 999 รายการแล้ว กรุณาลบข้อมูลเก่าก่อน</p>';
+        document.getElementById('task-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-task-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'กำลังบันทึก...';
+
+      const taskData = {
+        id: Date.now().toString(),
+        type: 'task',
+        date: document.getElementById('task-date').value,
+        startTime: document.getElementById('start-time').value,
+        endTime: document.getElementById('end-time').value,
+        employeeName: '',
+        taskDescription: document.getElementById('task-description').value,
+        location: document.getElementById('task-location').value,
+        status: document.getElementById('task-status').value,
+        rating: 0,
+        comment: '',
+        timestamp: Date.now()
+      };
+
+      if (window.dataSdk) {
+        const result = await window.dataSdk.create(taskData);
+        
+        if (result.isOk) {
+          document.getElementById('task-form').reset();
+          setTodayDate();
+          
+          const successDiv = document.createElement('div');
+          successDiv.className = 'mt-4 p-4 bg-green-100 border-2 border-green-500 rounded-lg text-center';
+          successDiv.innerHTML = '<p class="text-green-800 font-medium">✅ บันทึกข้อมูลสำเร็จ!</p>';
+          document.getElementById('task-form').appendChild(successDiv);
+          
+          setTimeout(() => {
+            successDiv.remove();
+            switchView('timeline');
+          }, 1500);
+        } else {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+          errorDiv.innerHTML = '<p class="text-red-800 font-medium">❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง</p>';
+          document.getElementById('task-form').appendChild(errorDiv);
+          setTimeout(() => errorDiv.remove(), 3000);
+        }
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'บันทึกข้อม���ล';
+    }
+
+    async function handleEvaluationSubmit(e) {
+      e.preventDefault();
+
+      if (selectedRating === 0) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+        errorDiv.innerHTML = '<p class="text-red-800 font-medium">���รุณาเลือกคะแนนก่อนส่งแบบประเมิน</p>';
+        document.getElementById('evaluation-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+        return;
+      }
+
+      if (currentRecordCount >= 999) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+        errorDiv.innerHTML = '<p class="text-red-800 font-medium">ไม่สามารถบันทึกได้ เนื่องจากถึงขีดจำกัด 999 รายการแล้ว</p>';
+        document.getElementById('evaluation-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-evaluation-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'กำลังส่ง...';
+
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const evaluationData = {
+        id: Date.now().toString(),
+        type: 'evaluation',
+        date: new Date().toISOString().split('T')[0],
+        startTime: currentTime,
+        endTime: currentTime,
+        employeeName: document.getElementById('customer-name').value || 'ไม่ระบุชื่อ',
+        taskDescription: 'การประเมินจากลูกค้า',
+        location: '',
+        status: 'completed',
+        rating: selectedRating,
+        comment: document.getElementById('customer-comment').value,
+        timestamp: Date.now()
+      };
+
+      if (window.dataSdk) {
+        const result = await window.dataSdk.create(evaluationData);
+        
+        if (result.isOk) {
+          document.getElementById('evaluation-form').classList.add('hidden');
+          document.getElementById('evaluation-success').classList.remove('hidden');
+          
+          setTimeout(() => {
+            document.getElementById('evaluation-form').reset();
+            document.getElementById('evaluation-form').classList.remove('hidden');
+            document.getElementById('evaluation-success').classList.add('hidden');
+            selectedRating = 0;
+            updateStarDisplay();
+          }, 3000);
+        } else {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'mt-4 p-4 bg-red-100 border-2 border-red-500 rounded-lg text-center';
+          errorDiv.innerHTML = '<p class="text-red-800 font-medium">❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง</p>';
+          document.getElementById('evaluation-form').appendChild(errorDiv);
+          setTimeout(() => errorDiv.remove(), 3000);
+        }
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'ส่งแบบประเมิน';
+    }
+
+    function updateStarDisplay() {
+      const stars = document.querySelectorAll('.star');
+      const ratingText = document.getElementById('rating-text');
+      
+      stars.forEach((star, index) => {
+        if (index < selectedRating) {
+          star.classList.add('active');
+        } else {
+          star.classList.remove('active');
+        }
+      });
+
+      const ratingLabels = ['', 'แย่มาก', 'แย่', 'พอใช้', 'ดี', 'ดีมาก'];
+      ratingText.textContent = selectedRating > 0 ? ratingLabels[selectedRating] : 'กรุณาเลือกคะแนน';
+    }
+
+    function updateDashboard(data) {
+      const tasks = data.filter(item => item.type === 'task');
+      const evaluations = data.filter(item => item.type === 'evaluation');
+      
+      const completedTasks = tasks.filter(task => task.status === 'completed').length;
+      const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+      
+      const ratings = evaluations.map(e => e.rating).filter(r => r > 0);
+      const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '0.0';
+
+      document.getElementById('total-tasks').textContent = tasks.length;
+      document.getElementById('completed-tasks').textContent = completedTasks;
+      document.getElementById('pending-tasks').textContent = pendingTasks;
+      document.getElementById('avg-rating').textContent = avgRating;
+
+      const taskList = document.getElementById('task-list');
+      
+      if (data.length === 0) {
+        taskList.innerHTML = '<div class="text-center py-8 text-gray-500">ยังไม่มีข้อมูลการปฏิบัติงาน กดปุ่ม "บันทึกงาน" เพื่อเริ่มต้น</div>';
+        return;
+      }
+
+      const sortedData = [...data].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+      
+      taskList.innerHTML = sortedData.map(item => {
+        const statusColor = item.status === 'completed' ? '#10b981' : '#f59e0b';
+        const statusText = item.status === 'completed' ? 'เสร็จสิ้น' : 'ก���ลังดำเนินการ';
+        const typeIcon = item.type === 'task' ? '��' : '⭐';
+        const ratingDisplay = item.rating > 0 ? `คะแนน: ${'⭐'.repeat(item.rating)}` : '';
+        const timeDisplay = item.startTime ? `${item.startTime} - ${item.endTime}` : '';
+        const locationDisplay = item.location ? `📍 ${item.location}` : '';
+        
+        return `
+          <div class="task-item bg-white p-4 rounded-lg border-2 border-gray-200">
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-2xl">${typeIcon}</span>
+                  <span class="text-sm text-gray-500">${item.date}</span>
+                  ${timeDisplay ? `<span class="text-sm text-blue-600">🕐 ${timeDisplay}</span>` : ''}
+                </div>
+                <p class="text-gray-600 mb-2">${item.taskDescription}</p>
+                ${locationDisplay ? `<p class="text-sm text-gray-500 mb-2">${locationDisplay}</p>` : ''}
+                ${ratingDisplay ? `<p class="text-sm text-yellow-600">${ratingDisplay}</p>` : ''}
+                ${item.comment ? `<p class="text-sm text-gray-500 italic">"${item.comment}"</p>` : ''}
+              </div>
+              <span class="px-3 py-1 rounded-full text-sm font-medium text-white" style="background-color: ${statusColor};">
+                ${statusText}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateTimeline(data) {
+      const timelineContainer = document.getElementById('timeline-container');
+      
+      let filteredData = data.filter(item => item.type === 'task');
+      
+      if (filteredDate) {
+        filteredData = filteredData.filter(item => item.date === filteredDate);
+      }
+      
+      if (filteredData.length === 0) {
+        const message = filteredDate 
+          ? `ไม่มีข้อมูลในวันที่ ${new Date(filteredDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`
+          : 'ยังไม่มีข้อมูลในไทม์ไลน์ กดปุ่ม "บันทึกงาน" เพื่อเพิ่มงาน';
+        timelineContainer.innerHTML = `<div class="text-center py-12 text-gray-500">${message}</div>`;
+        return;
+      }
+
+      const sortedData = [...filteredData].sort((a, b) => {
+        const dateCompare = b.date.localeCompare(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        return (b.startTime || '').localeCompare(a.startTime || '');
+      });
+
+      let currentDate = '';
+      let timelineHTML = '';
+
+      sortedData.forEach(item => {
+        if (item.date !== currentDate) {
+          currentDate = item.date;
+          const dateObj = new Date(item.date + 'T00:00:00');
+          const thaiDate = dateObj.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            weekday: 'long'
+          });
+          
+          timelineHTML += `
+            <div class="mb-6 pb-4 border-b-2 border-purple-200">
+              <h3 class="text-xl font-bold text-purple-700">📅 ${thaiDate}</h3>
+            </div>
+          `;
+        }
+
+        const statusColor = item.status === 'completed' ? '#10b981' : '#f59e0b';
+        const statusText = item.status === 'completed' ? '✅ เสร็จสิ้น' : '⏳ กำลังดำเนินการ';
+        const duration = calculateDuration(item.startTime, item.endTime);
+        
+        timelineHTML += `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="time-badge">🕐 ${item.startTime} - ${item.endTime}</span>
+                  ${duration ? `<span class="time-badge">⏱️ ${duration}</span>` : ''}
+                </div>
+                <span class="px-3 py-1 rounded-full text-sm font-medium text-white" style="background-color: ${statusColor};">
+                  ${statusText}
+                </span>
+              </div>
+              
+              <p class="text-gray-700 mb-2">${item.taskDescription}</p>
+              ${item.location ? `<p class="text-sm text-gray-600">📍 ${item.location}</p>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      timelineContainer.innerHTML = timelineHTML;
+    }
+
+    function calculateDuration(startTime, endTime) {
+      if (!startTime || !endTime) return '';
+      
+      const [startHour, startMin] = startTime.split(':').map(Number);
+      const [endHour, endMin] = endTime.split(':').map(Number);
+      
+      let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      
+      if (totalMinutes < 0) totalMinutes += 24 * 60;
+      
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      
+      if (hours > 0 && minutes > 0) {
+        return `${hours} ชม. ${minutes} นาที`;
+      } else if (hours > 0) {
+        return `${hours} ชม.`;
+      } else {
+        return `${minutes} นาที`;
+      }
+    }
+
+    function generateQRCode() {
+      const qrcodeDiv = document.getElementById('qrcode');
+      qrcodeDiv.innerHTML = '';
+      
+      const currentUrl = window.location.href.split('#')[0];
+      const evaluationUrl = currentUrl + '#evaluation-form';
+      
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrcodeDiv, {
+          text: evaluationUrl,
+          width: 250,
+          height: 250,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+    }
+
+    if (window.location.hash === '#evaluation-form') {
+      setTimeout(() => switchView('evaluation-form'), 100);
+    }
+
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a10dcba012810ca',t:'MTc2MzU2NzQxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
